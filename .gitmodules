@@ -1,0 +1,3 @@
+[submodule "openFRUE-Installer"]
+	path = openFRUE-Installer
+	url = https://github.com/FRUE-Project/openFRUE-Installer.git
