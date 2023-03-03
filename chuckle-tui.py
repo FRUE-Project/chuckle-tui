@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-
+import os
 import sys
 import curses
 from enum import Enum
@@ -58,6 +58,12 @@ class Opts(Enum):
                     [Opts.USE_DEFAULT_PARTITION_SCHEME, Opts.USE_CUSTOM_PARTITION_SCHEME], MENU_WIDTH+1, 0
                 )
             )
+        elif opt == Opts.USE_CUSTOM_PARTITION_SCHEME:
+            # WARN: Doesn't work 
+            os.system('cfdisk')
+        elif opt == Opts.USE_DEFAULT_PARTITION_SCHEME:
+            # TODO: Write this part
+            pass
 
 class Menu:
     def __init__(self, options, x=0, y=0):
@@ -124,9 +130,12 @@ def main(stdscr):
         elif i == curses.KEY_LEFT and chosen == 1:
             menus.remove(menus[1])
             chosen = 0
+        elif i == curses.KEY_RIGHT:
+            menus[1].choose_current(menus)
 
 curses.wrapper(main)
 
 # Terminate app
 curses.nocbreak()
 curses.echo()
+
