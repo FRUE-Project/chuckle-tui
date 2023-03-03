@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import sys
 import curses
 from enum import Enum
@@ -9,11 +11,16 @@ class Opts(Enum):
     CONTINUE_INSTALL  = 1
     TERMINATE_INSTALL = 2
     SET_LANGUAGE      = 3
+    MANAGE_PARTITIONS = 4
 
     # Set language menu
     # NOTE Language select menu needs a rewrite to scan 'n stuff to detect locales 'n shit
-    KB_EN_US = 4
-    KB_FI    = 5
+    KB_EN_US = 5
+    KB_FI    = 6
+
+    # PARTITIONS MENU
+    USE_DEFAULT_PARTITION_SCHEME = 7
+    USE_CUSTOM_PARTITION_SCHEME  = 8
 
     def opt_to_text(opt):
         if opt == Opts.CONTINUE_INSTALL:
@@ -22,10 +29,17 @@ class Opts(Enum):
             return 'Stop installing'
         elif opt == Opts.SET_LANGUAGE:
             return 'Set install language'
+        elif opt == Opts.MANAGE_PARTITIONS:
+            return 'Manage partitions'
         elif opt == Opts.KB_EN_US:
             return 'English (US)'
         elif opt == Opts.KB_FI:
             return 'Finnish'
+        elif opt == Opts.USE_DEFAULT_PARTITION_SCHEME:
+            return 'Use the default partition scheme'
+        elif opt == Opts.USE_CUSTOM_PARTITION_SCHEME:
+            return 'Use a custom partition scheme'
+        return 'UNKNOWN OPTION (SHOULD NEVER BE SEEN)'
 
     def opt_to_action(opt, menus):
         if opt == Opts.CONTINUE_INSTALL:
@@ -33,7 +47,17 @@ class Opts(Enum):
         elif opt == Opts.TERMINATE_INSTALL:
             sys.exit()
         elif opt == Opts.SET_LANGUAGE:
-            menus.append(Menu([Opts.KB_EN_US, Opts.KB_FI], MENU_WIDTH+1, 0))
+            menus.append(
+                Menu(
+                    [Opts.KB_EN_US, Opts.KB_FI], MENU_WIDTH+1, 0
+                )
+            )
+        elif opt == Opts.MANAGE_PARTITIONS:
+            menus.append(
+                Menu(
+                    [Opts.USE_DEFAULT_PARTITION_SCHEME, Opts.USE_CUSTOM_PARTITION_SCHEME], MENU_WIDTH+1, 0
+                )
+            )
 
 class Menu:
     def __init__(self, options, x=0, y=0):
@@ -78,6 +102,7 @@ def main(stdscr):
     curses.curs_set(False)
     menus = [Menu([
         Opts.SET_LANGUAGE,
+        Opts.MANAGE_PARTITIONS,
         Opts.CONTINUE_INSTALL,
         Opts.TERMINATE_INSTALL
     ], 0, 0)]
@@ -89,9 +114,9 @@ def main(stdscr):
             m.display(stdscr)
         stdscr.refresh()
         i = stdscr.getch()
-        if i == curses.KEY_DOWN:
+        if i == curses.KEY_DOWN and (menus[chosen].chosen < len(menus[chosen].options) - 1):
             menus[chosen].chosen += 1
-        elif i == curses.KEY_UP:
+        elif i == curses.KEY_UP and (menus[chosen].chosen > 0):
             menus[chosen].chosen -= 1
         elif i == curses.KEY_RIGHT and chosen == 0:
             menus[0].choose_current(menus)
