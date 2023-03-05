@@ -4,7 +4,18 @@ import sys
 import curses
 from enum import Enum
 
+from time import sleep
+
 MENU_WIDTH = 40
+
+class InstallState:
+    def __init__(self):
+        self.locale = 'en_US.utf8'
+        self.partitions = Opts.USE_DEFAULT_PARTITION_SCHEME
+
+    def install(self):
+        pass
+
 
 class Opts(Enum):
     # Main menu
@@ -14,13 +25,18 @@ class Opts(Enum):
     MANAGE_PARTITIONS = 4
 
     # Set language menu
-    # NOTE Language select menu needs a rewrite to scan 'n stuff to detect locales 'n shit
-    KB_EN_US = 5
-    KB_FI    = 6
+    # TODO: Language select menu needs a rewrite to scan 'n stuff to detect locales 'n shit
+    EN_US = 5
+    FI    = 6
 
     # PARTITIONS MENU
     USE_DEFAULT_PARTITION_SCHEME = 7
     USE_CUSTOM_PARTITION_SCHEME  = 8
+
+    # After install
+    REBOOT          = 9
+    CLOSE_INSTALLER = 10
+    INSTALLING      = 11
 
     def opt_to_text(opt):
         if opt == Opts.CONTINUE_INSTALL:
@@ -28,28 +44,45 @@ class Opts(Enum):
         elif opt == Opts.TERMINATE_INSTALL:
             return 'Stop installing'
         elif opt == Opts.SET_LANGUAGE:
-            return 'Set install language'
+            return 'Set locale'
         elif opt == Opts.MANAGE_PARTITIONS:
             return 'Manage partitions'
-        elif opt == Opts.KB_EN_US:
+        elif opt == Opts.EN_US:
             return 'English (US)'
-        elif opt == Opts.KB_FI:
+        elif opt == Opts.FI:
             return 'Finnish'
         elif opt == Opts.USE_DEFAULT_PARTITION_SCHEME:
             return 'Use the default partition scheme'
         elif opt == Opts.USE_CUSTOM_PARTITION_SCHEME:
             return 'Use a custom partition scheme'
+        elif opt == Opts.REBOOT:
+            return 'Reboot'
+        elif opt == Opts.CLOSE_INSTALLER:
+            return 'Close'
+        elif opt == Opts.INSTALLING:
+            return 'Installing...'
         return 'UNKNOWN OPTION (SHOULD NEVER BE SEEN)'
 
-    def opt_to_action(opt, menus):
+    def opt_to_action(opt, menus, install_state):
         if opt == Opts.CONTINUE_INSTALL:
-            pass
-        elif opt == Opts.TERMINATE_INSTALL:
+            menus.append(
+                Menu(
+                    [Opts.INSTALLING], MENU_WIDTH+1, 0
+                )
+            )
+            install_state.install()
+            menus.remove(menus[1])
+            menus.append(
+                Menu(
+                    [Opts.REBOOT, Opts.CLOSE_INSTALLER], MENU_WIDTH+1, 0
+                )
+            )
+        elif opt == Opts.TERMINATE_INSTALL or opt == Opts.CLOSE_INSTALLER:
             sys.exit()
         elif opt == Opts.SET_LANGUAGE:
             menus.append(
                 Menu(
-                    [Opts.KB_EN_US, Opts.KB_FI], MENU_WIDTH+1, 0
+                    [Opts.EN_US, Opts.FI], MENU_WIDTH+1, 0
                 )
             )
         elif opt == Opts.MANAGE_PARTITIONS:
@@ -63,6 +96,10 @@ class Opts(Enum):
             os.system('cfdisk')
         elif opt == Opts.USE_DEFAULT_PARTITION_SCHEME:
             # TODO: Write this part
+            pass
+        elif opt == Opts.REBOOT:
+            os.system('reboot')
+        elif opt == Opts.INSTALLING:
             pass
 
 class Menu:
@@ -100,8 +137,8 @@ class Menu:
                 stdscr.addstr(r + 1 + self.y, 4 + self.x, Opts.opt_to_text(o))
             r += 1
 
-    def choose_current(self, menus):
-        Opts.opt_to_action(self.options[self.chosen], menus)
+    def choose_current(self, menus, install_state):
+        Opts.opt_to_action(self.options[self.chosen], menus, install_state)
 
 def main(stdscr):
     stdscr.keypad(True)
@@ -113,6 +150,7 @@ def main(stdscr):
         Opts.TERMINATE_INSTALL
     ], 0, 0)]
     chosen = 0
+    install_state = InstallState()
     while True:
         curses.noecho()
         stdscr.clear()
@@ -125,13 +163,13 @@ def main(stdscr):
         elif i == curses.KEY_UP and (menus[chosen].chosen > 0):
             menus[chosen].chosen -= 1
         elif i == curses.KEY_RIGHT and chosen == 0:
-            menus[0].choose_current(menus)
+            menus[0].choose_current(menus, install_state)
             chosen = 1
         elif i == curses.KEY_LEFT and chosen == 1:
             menus.remove(menus[1])
             chosen = 0
         elif i == curses.KEY_RIGHT:
-            menus[1].choose_current(menus)
+            menus[1].choose_current(menus, install_state)
 
 curses.wrapper(main)
 
